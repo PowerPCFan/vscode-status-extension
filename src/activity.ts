@@ -172,7 +172,8 @@ export async function activity(previous: StatusPayload = {}): Promise<StatusPayl
     if (window.activeTextEditor) {
         const fileName = basename(window.activeTextEditor.document.fileName);
         const language = resolveFileIcon(window.activeTextEditor.document);
-        const languageIcon = `https://raw.githubusercontent.com/PowerPCFan/vscode-status-extension/refs/heads/main/assets/icons/${language}.png`;
+        const repoUrl = 'https://raw.githubusercontent.com/PowerPCFan/vscode-status-extension/refs/heads/master';
+        const languageIcon = `${repoUrl}/assets/icons/${language}.png`;
         const workspaceFolder = workspace.getWorkspaceFolder(window.activeTextEditor.document.uri);
         const workspaceName = workspace.name ?? workspaceFolder?.name ?? 'No workspace';
 

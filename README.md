@@ -12,5 +12,3 @@ Extension Settings:
 - Idle Timeout: Time to stop sending updates when idling.
 - Suppress Notifications: Stops error messages from being sent to the user when enabled
 - User ID: User ID for tracking, updating, and receiving status updates to and from the API.
-
-Notice: I know very little about developing Visual Studio Code extensions so I used Claude 4 Sonnet to make this extension with my API and some other VSCode extensions as a reference. I have tested the extension and refined it to my liking and it seems to work well.
