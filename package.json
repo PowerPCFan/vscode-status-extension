@@ -1,6 +1,6 @@
 {
     "$schema": "https://json.schemastore.org/package.json",
-    "name": "vscode-status",
+    "name": "vscode-status-extension",
     "displayName": "VSCode Status",
     "version": "1.1.1",
     "description": "Sends your Visual Studio Code status to an external API.",
@@ -30,12 +30,12 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/PowerPCFan/vscode-status.git"
+        "url": "https://github.com/PowerPCFan/vscode-status-extension.git"
     },
     "bugs": {
-        "url": "https://github.com/PowerPCFan/vscode-status/issues"
+        "url": "https://github.com/PowerPCFan/vscode-status-extension/issues"
     },
-    "homepage": "https://github.com/PowerPCFan/vscode-status#readme",
+    "homepage": "https://github.com/PowerPCFan/vscode-status-extension#readme",
     "dependencies": {
         "@types/node-fetch": "^2.6.13",
         "dayjs": "^1.11.13",
