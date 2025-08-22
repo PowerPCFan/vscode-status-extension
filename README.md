@@ -1,6 +1,6 @@
 # vscode-status
 
-A simple extension that sends your VSCode status to an external API \(https://github.com/PowerPCFan/vscode-status-api/\).
+A simple extension that sends your VSCode status to an external API (https://github.com/PowerPCFan/vscode-status-api/).
 
 Extension Settings:
 - API URL: The API endpoint to send status updates to
