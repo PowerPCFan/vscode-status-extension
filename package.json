@@ -2,7 +2,7 @@
     "$schema": "https://json.schemastore.org/package.json",
     "name": "vscode-status-extension",
     "displayName": "VSCode Status Extension",
-    "version": "1.1.2",
+    "version": "2.0.0",
     "description": "Sends your Visual Studio Code status to an external API.",
     "private": false,
     "publisher": "PowerPCFan",
@@ -99,8 +99,8 @@
                 },
                 "vscodeStatus.apiUrl": {
                     "type": "string",
-                    "default": "https://vscode-status.powerpcfan.xyz/update-status",
-                    "description": "The API endpoint to send status updates to"
+                    "default": "https://vscode-status.powerpcfan.xyz",
+                    "description": "The API base URL to send requests to"
                 },
                 "vscodeStatus.authToken": {
                     "type": "string",

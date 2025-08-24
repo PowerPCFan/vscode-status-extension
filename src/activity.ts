@@ -11,14 +11,13 @@ import {
     UNKNOWN_GIT_REPO_NAME,
 } from './constants';
 import { log, LogLevel } from './logger';
-import { getConfig, getGit, resolveFileIcon, toLower, toTitle, toUpper } from './util';
+import { getConfig, getGit, toLower, toTitle, toUpper } from './util';
 
 interface StatusPayload {
     details?: string | undefined;
     state?: string | undefined;
     fileName?: string | undefined;
     language?: string | undefined;
-    languageIcon?: string | undefined;
     workspace?: string | undefined;
     timestamp?: number | undefined;
     isDebugging?: boolean | undefined;
@@ -114,7 +113,7 @@ async function details(idling: CONFIG_KEYS, editing: CONFIG_KEYS, debugging: CON
             workspaceFolderName === FAKE_EMPTY ? '' : ` - ${workspaceFolderName}`
         }`;
 
-        const fileIcon = resolveFileIcon(window.activeTextEditor.document);
+        const language = window.activeTextEditor.document.languageId || 'text';
 
         if (debug.activeDebugSession) {
             raw = config[debugging] as string;
@@ -141,9 +140,9 @@ async function details(idling: CONFIG_KEYS, editing: CONFIG_KEYS, debugging: CON
             .replace(REPLACE_KEYS.Workspace, workspaceName)
             .replace(REPLACE_KEYS.WorkspaceFolder, workspaceFolderName)
             .replace(REPLACE_KEYS.WorkspaceAndFolder, workspaceAndFolder)
-            .replace(REPLACE_KEYS.LanguageLowerCase, toLower(fileIcon))
-            .replace(REPLACE_KEYS.LanguageTitleCase, toTitle(fileIcon))
-            .replace(REPLACE_KEYS.LanguageUpperCase, toUpper(fileIcon));
+            .replace(REPLACE_KEYS.LanguageLowerCase, toLower(language))
+            .replace(REPLACE_KEYS.LanguageTitleCase, toTitle(language))
+            .replace(REPLACE_KEYS.LanguageUpperCase, toUpper(language));
     }
 
     return raw;
@@ -171,9 +170,7 @@ export async function activity(previous: StatusPayload = {}): Promise<StatusPayl
 
     if (window.activeTextEditor) {
         const fileName = basename(window.activeTextEditor.document.fileName);
-        const language = resolveFileIcon(window.activeTextEditor.document);
-        const repoUrl = 'https://raw.githubusercontent.com/PowerPCFan/vscode-status-extension/refs/heads/master';
-        const languageIcon = `${repoUrl}/assets/icons/${language}.png`;
+        const language = window.activeTextEditor.document.languageId || 'text';
         const workspaceFolder = workspace.getWorkspaceFolder(window.activeTextEditor.document.uri);
         const workspaceName = workspace.name ?? workspaceFolder?.name ?? 'No workspace';
 
@@ -182,7 +179,6 @@ export async function activity(previous: StatusPayload = {}): Promise<StatusPayl
             details: await details(CONFIG_KEYS.DetailsIdling, CONFIG_KEYS.DetailsEditing, CONFIG_KEYS.DetailsDebugging),
             fileName,
             language,
-            languageIcon,
             workspace: workspaceName,
         };
 

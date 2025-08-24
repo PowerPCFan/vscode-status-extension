@@ -2,7 +2,6 @@ import { basename } from 'node:path';
 import type { TextDocument, WorkspaceConfiguration } from 'vscode';
 import { workspace, extensions } from 'vscode';
 import type { API, GitExtension } from './@types/git';
-import { KNOWN_EXTENSIONS, KNOWN_LANGUAGES } from './constants';
 import { log, LogLevel } from './logger';
 
 let git: API | null | undefined;
@@ -47,31 +46,6 @@ export const toLower = (str: string) => str.toLocaleLowerCase();
 export const toUpper = (str: string) => str.toLocaleUpperCase();
 
 export const toTitle = (str: string) => toLower(str).replace(/^\w/, (char) => toUpper(char));
-
-export function resolveFileIcon(document: TextDocument) {
-    const filename = basename(document.fileName);
-    const findKnownExtension = Object.keys(KNOWN_EXTENSIONS).find((key) => {
-        if (filename.endsWith(key)) {
-            return true;
-        }
-
-        const match = /^\/(.*)\/([gimy]+)$/.exec(key);
-        if (!match) {
-            return false;
-        }
-
-        const regex = new RegExp(match[1] as string, match[2] as string);
-        return regex.test(filename);
-    });
-    const findKnownLanguage = KNOWN_LANGUAGES.find((key) => key.language === document.languageId);
-    const fileIcon = findKnownExtension
-        ? KNOWN_EXTENSIONS[findKnownExtension]
-        : findKnownLanguage
-            ? findKnownLanguage.image
-            : null;
-
-    return typeof fileIcon === 'string' ? fileIcon : (fileIcon?.image ?? 'text');
-}
 
 export async function getGit() {
     if (git || git === null) {

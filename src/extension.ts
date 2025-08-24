@@ -5,7 +5,7 @@ import { activity } from './activity';
 import { CONFIG_KEYS } from './constants';
 import { log, LogLevel } from './logger';
 import { getConfig, getGit, generateGuid, generateUserId } from './util';
-import { postStatus } from './apiClient';
+import { postStatus, registerUser } from './apiClient';
 
 const statusBarIcon: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left);
 statusBarIcon.text = '$(pulse) Connecting to API...';
@@ -51,7 +51,7 @@ async function sendActivity() {
 async function sendStatusToAPI(statusData: any) {
     const now = Date.now();
     const config = getConfig();
-    const apiUrl = config[CONFIG_KEYS.ApiUrl];
+    const apiBaseUrl = config[CONFIG_KEYS.ApiUrl];
     const authToken = config[CONFIG_KEYS.AuthToken];
     const userId = config[CONFIG_KEYS.UserId];
 
@@ -63,7 +63,45 @@ async function sendStatusToAPI(statusData: any) {
             ...statusData,
         };
         log(LogLevel.Debug, `Sending status payload: ${JSON.stringify(statusPayload)}`);
-        const response = await postStatus(apiUrl, statusPayload, authToken);
+        
+        // Construct the update-status URL
+        const updateStatusUrl = `${apiBaseUrl}/update-status`;
+        let response = await postStatus(updateStatusUrl, statusPayload, authToken);
+
+        // If user not found (404), try to register the user and then retry
+        if (response.status === 404) {
+            log(LogLevel.Info, `User not found, attempting to register user: ${userId}`);
+            
+            try {
+                // Construct the registration URL
+                const registerUrl = `${apiBaseUrl}/register-user`;
+                const registerResponse = await registerUser(registerUrl, userId, authToken);
+                
+                if (registerResponse.ok) {
+                    log(LogLevel.Info, `Successfully registered user: ${userId}`);
+                    if (!config[CONFIG_KEYS.SuppressNotifications]) {
+                        void window.showInformationMessage(`Successfully registered with API as user: ${userId}`);
+                    }
+                    
+                    // Retry the original status update
+                    log(LogLevel.Debug, `Retrying status update after registration`);
+                    response = await postStatus(updateStatusUrl, statusPayload, authToken);
+                } else if (registerResponse.status === 409) {
+                    // User already exists, this is fine - just retry the original request
+                    log(LogLevel.Info, `User already exists, retrying status update`);
+                    response = await postStatus(updateStatusUrl, statusPayload, authToken);
+                } else {
+                    // Registration failed for some other reason
+                    const errorMessage = `Failed to register user. Status: ${registerResponse.status}`;
+                    log(LogLevel.Error, errorMessage);
+                    throw new Error(errorMessage);
+                }
+            } catch (registerError) {
+                const errorMessage = registerError instanceof Error ? registerError.message : String(registerError);
+                log(LogLevel.Error, `Failed to register user: ${errorMessage}`);
+                throw new Error(`User registration failed: ${errorMessage}`);
+            }
+        }
 
         if (response.ok) {
             const responseData = await response.json() as any;
@@ -71,14 +109,8 @@ async function sendStatusToAPI(statusData: any) {
             statusBarIcon.tooltip = 'Connected to API';
             clearStatusBarCommand();
             log(LogLevel.Debug, 'Successfully sent status to API');
-            // If this was a new user registration, show a notification
-            if (responseData.new_user) {
-                if (!config[CONFIG_KEYS.SuppressNotifications]) {
-                    void window.showInformationMessage(`Successfully registered extension with API as user: ${userId}`);
-                }
-            }
         } else {
-            // Handle specific error cases
+            // Handle specific error cases (excluding 404 which we handled above)
             let errorMessage = `API returned status ${response.status}: ${response.statusText}`;
             let shouldShowNotification = true;
             
@@ -112,31 +144,6 @@ async function sendStatusToAPI(statusData: any) {
                         }
                     }
                     shouldShowNotification = false;
-                    break;
-                    
-                case 409:
-                    // User already exists (shouldn't happen in normal flow)
-                    log(LogLevel.Warn, `User registration conflict: ${errorMessage}`);
-                    statusBarIcon.text = '$(warning) User Conflict';
-                    statusBarIcon.tooltip = `User ID conflict. Generate a new user ID.`;
-                    if (!config[CONFIG_KEYS.SuppressNotifications]) {
-                        const action = await window.showWarningMessage(
-                            `User ID conflict detected. Generate a new user ID?`,
-                            'Generate New User ID'
-                        );
-                        if (action === 'Generate New User ID') {
-                            await commands.executeCommand('vscodeStatus.generateNewUserId');
-                            await commands.executeCommand('vscodeStatus.reconnect');
-                        }
-                    }
-                    shouldShowNotification = false;
-                    break;
-                    
-                case 404:
-                    // API endpoint not found
-                    log(LogLevel.Error, `API endpoint not found: ${errorMessage}`);
-                    statusBarIcon.text = '$(warning) API Not Found';
-                    statusBarIcon.tooltip = `API endpoint not found. Check your API URL configuration.`;
                     break;
                     
                 case 429:
@@ -180,9 +187,9 @@ async function sendStatusToAPI(statusData: any) {
         if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')) {
             log(LogLevel.Error, `Network connection failed: ${errorMessage}`);
             statusBarIcon.text = '$(warning) Connection Failed';
-            statusBarIcon.tooltip = `Cannot connect to API server. Check your API URL and network connection.`;
+            statusBarIcon.tooltip = `Cannot connect to API server. Check your API base URL and network connection.`;
             if (!config[CONFIG_KEYS.SuppressNotifications]) {
-                void window.showErrorMessage(`Cannot connect to API. Check your API URL in settings.`);
+                void window.showErrorMessage(`Cannot connect to API. Check your API base URL in settings.`);
             }
             makeStatusBarRetryable();
         } else if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
@@ -194,7 +201,7 @@ async function sendStatusToAPI(statusData: any) {
         } else if (errorMessage.includes('certificate') || errorMessage.includes('SSL') || errorMessage.includes('TLS')) {
             log(LogLevel.Error, `SSL/TLS error: ${errorMessage}`);
             statusBarIcon.text = '$(warning) SSL Error';
-            statusBarIcon.tooltip = `SSL/TLS certificate error. Check your API URL and certificates.`;
+            statusBarIcon.tooltip = `SSL/TLS certificate error. Check your API base URL and certificates.`;
             if (!config[CONFIG_KEYS.SuppressNotifications]) {
                 void window.showErrorMessage(`SSL/TLS error connecting to API: ${errorMessage}`);
             }

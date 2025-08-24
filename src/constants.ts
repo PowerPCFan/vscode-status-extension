@@ -1,8 +1,3 @@
-import LANG from './data/languages.json';
-
-export const KNOWN_EXTENSIONS: { [key: string]: { image: string } } = LANG.KNOWN_EXTENSIONS;
-export const KNOWN_LANGUAGES: { image: string; language: string }[] = LANG.KNOWN_LANGUAGES;
-
 export const EMPTY = '' as const;
 export const FAKE_EMPTY = '\u200B\u200B' as const;
 export const FILE_SIZES = [' bytes', 'KB', 'MB', 'GB', 'TB'] as const;
