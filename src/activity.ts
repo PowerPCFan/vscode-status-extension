@@ -21,6 +21,7 @@ interface StatusPayload {
     workspace?: string | undefined;
     timestamp?: number | undefined;
     isDebugging?: boolean | undefined;
+    isIdling?: boolean | undefined;
     gitBranch?: string | undefined;
     gitRepo?: string | undefined;
     appName?: string | undefined;
@@ -157,6 +158,7 @@ export async function activity(previous: StatusPayload = {}): Promise<StatusPayl
         timestamp: previous.timestamp ?? Date.now(),
         appName,
         isDebugging: !!debug.activeDebugSession,
+        isIdling: !window.activeTextEditor, // User is idling if no active text editor
     };
 
     // Add git information
@@ -180,6 +182,7 @@ export async function activity(previous: StatusPayload = {}): Promise<StatusPayl
             fileName,
             language,
             workspace: workspaceName,
+            isIdling: false, // User is not idling when actively editing
         };
 
         log(LogLevel.Trace, `VSCode language id: ${window.activeTextEditor.document.languageId}`);

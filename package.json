@@ -2,7 +2,7 @@
     "$schema": "https://json.schemastore.org/package.json",
     "name": "vscode-status-extension",
     "displayName": "VSCode Status Extension",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "description": "Sends your Visual Studio Code status to an external API.",
     "private": false,
     "publisher": "PowerPCFan",
