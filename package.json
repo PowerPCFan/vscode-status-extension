@@ -2,7 +2,7 @@
     "$schema": "https://json.schemastore.org/package.json",
     "name": "vscode-status-extension",
     "displayName": "VSCode Status Extension",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "description": "Sends your Visual Studio Code status to an external API.",
     "private": false,
     "publisher": "PowerPCFan",
@@ -63,18 +63,13 @@
     "contributes": {
         "commands": [
             {
-                "command": "vscodeStatus.enable",
-                "title": "Enable VSCode Status",
-                "category": "VSCode Status"
-            },
-            {
-                "command": "vscodeStatus.disable",
-                "title": "Disable VSCode Status",
-                "category": "VSCode Status"
-            },
-            {
                 "command": "vscodeStatus.reconnect",
-                "title": "Reconnect VSCode Status",
+                "title": "Reconnect VSCode Status Extension to API",
+                "category": "VSCode Status"
+            },
+            {
+                "command": "vscodeStatus.disconnect",
+                "title": "Disconnect VSCode Status Extension from API",
                 "category": "VSCode Status"
             },
             {

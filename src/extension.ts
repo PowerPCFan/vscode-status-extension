@@ -12,6 +12,7 @@ statusBarIcon.text = '$(pulse) Connecting to API...';
 
 const config = getConfig();
 
+let isDisconnectedFromAPI = false;
 
 let state = {};
 let idle: NodeJS.Timeout | undefined;
@@ -40,6 +41,12 @@ function clearStatusBarCommand() {
 }
 
 async function sendActivity() {
+    // If disconnected from API in memory, don't send status updates
+    if (isDisconnectedFromAPI) {
+        log(LogLevel.Debug, 'Skipping status update - disconnected from API');
+        return;
+    }
+
     state = {
         ...(await activity(state)),
     };
@@ -80,7 +87,7 @@ async function sendStatusToAPI(statusData: any) {
                 if (registerResponse.ok) {
                     log(LogLevel.Info, `Successfully registered user: ${userId}`);
                     if (!config[CONFIG_KEYS.SuppressNotifications]) {
-                        void window.showInformationMessage(`Successfully registered with API as user: ${userId}`);
+                        void window.showInformationMessage(`Successfully registered with API as user ${userId}`);
                     }
                     
                     // Retry the original status update
@@ -133,14 +140,12 @@ async function sendStatusToAPI(statusData: any) {
                     if (!config[CONFIG_KEYS.SuppressNotifications]) {
                         const action = await window.showErrorMessage(
                             `API authentication failed. Your token may be invalid.`,
-                            'Generate New Token',
-                            'Disable Extension'
+                            'Generate New Token and User ID'
                         );
-                        if (action === 'Generate New Token') {
+                        if (action === 'Generate New Token and User ID') {
+                            await commands.executeCommand('vscodeStatus.generateNewUserId')
                             await commands.executeCommand('vscodeStatus.generateNewToken');
                             await commands.executeCommand('vscodeStatus.reconnect');
-                        } else if (action === 'Disable Extension') {
-                            await commands.executeCommand('vscodeStatus.disable');
                         }
                     }
                     shouldShowNotification = false;
@@ -153,7 +158,7 @@ async function sendStatusToAPI(statusData: any) {
                     statusBarIcon.tooltip = `API rate limited. Will retry automatically.`;
                     shouldShowNotification = false; // Don't spam user with rate limit notifications
                     break;
-                    
+
                 case 500:
                 case 502:
                 case 503:
@@ -173,7 +178,7 @@ async function sendStatusToAPI(statusData: any) {
             }
             
             if (shouldShowNotification && !config[CONFIG_KEYS.SuppressNotifications]) {
-                void window.showErrorMessage(`API error: ${errorMessage}`);
+                void window.showErrorMessage(`An API error occurred: ${errorMessage}`);
             }
             // Allow user to click the status bar to retry
             makeStatusBarRetryable();
@@ -187,9 +192,9 @@ async function sendStatusToAPI(statusData: any) {
         if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')) {
             log(LogLevel.Error, `Network connection failed: ${errorMessage}`);
             statusBarIcon.text = '$(warning) Connection Failed';
-            statusBarIcon.tooltip = `Cannot connect to API server. Check your API base URL and network connection.`;
+            statusBarIcon.tooltip = `Cannot connect to API server. Check your API URL and network connection.`;
             if (!config[CONFIG_KEYS.SuppressNotifications]) {
-                void window.showErrorMessage(`Cannot connect to API. Check your API base URL in settings.`);
+                void window.showErrorMessage(`Cannot connect to API. Check your API URL in settings.`);
             }
             makeStatusBarRetryable();
         } else if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
@@ -220,6 +225,9 @@ async function sendStatusToAPI(statusData: any) {
 
 async function connect() {
     log(LogLevel.Info, 'Connecting to API');
+    
+    // Reset disconnect state when connecting
+    isDisconnectedFromAPI = false;
     
     cleanUp();
 
@@ -302,27 +310,25 @@ export async function activate(context: ExtensionContext) {
         statusBarIcon.hide();
     };
 
-    const enabler = commands.registerCommand('vscodeStatus.enable', async () => {
-        await disable();
-        await enable();
-        await window.showInformationMessage('Enabled VSCode Status');
-    });
-
-    const disabler = commands.registerCommand('vscodeStatus.disable', async () => {
-        await disable();
-        await window.showInformationMessage('Disabled VSCode Status');
-    });
-
     const reconnecter = commands.registerCommand('vscodeStatus.reconnect', async () => {
+        isDisconnectedFromAPI = false; // Reset disconnect state
         await disable(false);
         await enable(false);
+    });
+
+    const disconnecter = commands.registerCommand('vscodeStatus.disconnect', async () => {
+        isDisconnectedFromAPI = true;
+        statusBarIcon.text = '$(circle-slash) Disconnected from API';
+        statusBarIcon.tooltip = 'Disconnected from API (in-memory). Click to reconnect.';
+        statusBarIcon.command = 'vscodeStatus.reconnect'; // Make it clickable to reconnect
+        log(LogLevel.Info, 'Disconnected from API (in-memory)');
     });
 
     const generateNewToken = commands.registerCommand('vscodeStatus.generateNewToken', async () => {
         const newToken = generateGuid();
         try {
             await config.update('authToken', newToken, ConfigurationTarget.Global); // Save to user settings (global)
-            await window.showInformationMessage(`Generated new authentication token: ${newToken}`);
+            await window.showInformationMessage(`Generated new authentication token.`);
             log(LogLevel.Info, `Generated new authentication token: ${newToken}`);
         } catch (error) {
             await window.showErrorMessage(`Failed to generate new token: ${error as string}`);
@@ -342,7 +348,7 @@ export async function activate(context: ExtensionContext) {
         }
     });
 
-    context.subscriptions.push(enabler, disabler, reconnecter, generateNewToken, generateNewUserId);
+    context.subscriptions.push(reconnecter, disconnecter, generateNewToken, generateNewUserId);
 
     if (!isWorkspaceExcluded && config[CONFIG_KEYS.Enabled]) {
         statusBarIcon.show();
